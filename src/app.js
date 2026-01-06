@@ -6,6 +6,11 @@ const User = require('./models/user');
 
 const app = express();
 
+// express.json() is a middleware that which is used to convert the incomming json data via request to javaScript object because express cannot undestands JSON
+// and we are using it in app.use() without and specific routes hence it works for all the route handlers and middlewares 
+app.use(express.json());
+
+// connecting the database first and then starting the server is the best practice 
 connectDB()
     .then(()=>{
     console.log("Database connected successfully...");
@@ -20,14 +25,8 @@ connectDB()
 
 app.post('/signup',async(req,res)=>{
 
-  const user = new User({
-    firstName: "John",
-    lastName: "Doe",
-    emaiId: "john.doe@example.com",
-    password: "password123",
-    age: 25,
-    gender: "Male"
-  });
+  // creating a new instance of user model 
+  const user = new User(req.body);
 
   try{
     await user.save();
@@ -37,6 +36,5 @@ app.post('/signup',async(req,res)=>{
     res.status(400).send("Bad Reuquest"+err.message);
   }
 
-})
-
+});
 

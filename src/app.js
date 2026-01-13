@@ -38,3 +38,61 @@ app.post('/signup',async(req,res)=>{
 
 });
 
+//getting some specific users by emailId
+app.get('/user',async(req,res)=>{
+  const userMailId = req.body.emailId;
+  try{
+      const users = await User.find({emailId:userMailId});
+      res.send(users);
+  } catch(err){
+    res.status(400).send('Something went wrong');
+  };
+})
+
+//getting all the users in the database 
+
+app.get('/feed',async(req,res)=>{
+  try{
+      const users = await User.find({})
+      res.send(users);
+  } catch(err){
+    res.status(400).send("Something went wrong");
+  }
+
+});
+
+//deleting a user by id
+app.delete('/deleteuser',async(req,res)=>{
+   const userId = req.body.userId;
+  try{
+      const result = await User.findByIdAndDelete({ _id: userId });
+      res.send("User deleted successfully");
+  } catch (err){
+    res.status(400).send("Something went wrong");
+  }
+})
+
+//updating a user by id
+app.patch('/user/:userId',async(req,res)=>{
+  const userId = req.params?.userId;
+  const data = req.body;
+  try{
+    const ALLOWED_UPDATES = ['photoUrl','about','gender','age','skills'];
+    const isUpdateAllowed = Object.keys(data).every((k)=>ALLOWED_UPDATES.includes(K));
+    if(!ALLOWED_UPDATES){
+      throw new Error("Update is not allowed");
+    }
+    if(data?.skills.length>10){
+      throw new Error("Skills cannot be greather than 10");
+    }
+    const user = await User.findByIdAndUpdate({_id:userId},data,{
+      returnDocument: true,
+      runValidators: true,
+    });
+    console.log(user);
+    res.send("User updated successfully");
+  } catch(err){
+    res.send("Something went wrong"+err.message);
+  }
+
+})

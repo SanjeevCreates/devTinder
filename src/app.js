@@ -4,6 +4,8 @@ const connectDB = require('./config/database');
 
 const User = require('./models/user');
 
+const {validateSignUpData} = require('./utils/validation');
+
 const app = express();
 
 // express.json() is a middleware that which is used to convert the incomming json data via request to javaScript object because express cannot undestands JSON
@@ -25,10 +27,19 @@ connectDB()
 
 app.post('/signup',async(req,res)=>{
 
-  // creating a new instance of user model 
-  const user = new User(req.body);
-
   try{
+    // validation of data at API level although we kept a schema level validation
+    validateSignUpData(req);
+    const {firstName, lastName, emailId, password} = req.body;
+    // Encrypt the password 
+    const passwordHash = await bcrypt.hash(password,10)
+    // creating a new instance of user model 
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    });
     await user.save();
     res.send("User signed up successfully");
   }

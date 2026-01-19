@@ -4,6 +4,10 @@ const connectDB = require('./config/database');
 
 const User = require('./models/user');
 
+const bcrypt = require('bcrypt');
+
+const cookieParser = require('cookie-parser');
+
 const {validateSignUpData} = require('./utils/validation');
 
 const app = express();
@@ -11,6 +15,9 @@ const app = express();
 // express.json() is a middleware that which is used to convert the incomming json data via request to javaScript object because express cannot undestands JSON
 // and we are using it in app.use() without and specific routes hence it works for all the route handlers and middlewares 
 app.use(express.json());
+
+//cookie-parser is an Express.js middleware used to read and parse cookies that come from the client (browser) in HTTP requests.
+app.use(cookieParser());
 
 // connecting the database first and then starting the server is the best practice 
 connectDB()
@@ -24,9 +31,28 @@ connectDB()
     console.log("Database connection failed", err);
     });
 
+// login api 
+app.post('./login',async(req,res)=>{
+  try{
+      const {emailId, password} = req.body;
+      const user = User.findOne({emailId: emailId});
+      if(!user){
+
+        throw new Error("Invalid Credentials");
+      }
+      const isPasswordValid = await bcrypt.compare(password,user.password);
+      if(isPasswordValid){
+        res.send("Login Succuessful");
+      }else{
+        throw new Error("Invalid Credentails");
+      }
+    } catch(err){
+
+    }res.send("ERROR : "+ err.message);
+});
+
 
 app.post('/signup',async(req,res)=>{
-
   try{
     // validation of data at API level although we kept a schema level validation
     validateSignUpData(req);
@@ -90,7 +116,7 @@ app.patch('/user/:userId',async(req,res)=>{
   try{
     const ALLOWED_UPDATES = ['photoUrl','about','gender','age','skills'];
     const isUpdateAllowed = Object.keys(data).every((k)=>ALLOWED_UPDATES.includes(K));
-    if(!ALLOWED_UPDATES){
+    if(!isUpdateAllowed){
       throw new Error("Update is not allowed");
     }
     if(data?.skills.length>10){

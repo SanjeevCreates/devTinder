@@ -8,6 +8,8 @@ const bcrypt = require('bcrypt');
 
 const cookieParser = require('cookie-parser');
 
+const jwt = require('jsonwebtoken');
+
 const {validateSignUpData} = require('./utils/validation');
 
 const app = express();
@@ -32,23 +34,29 @@ connectDB()
     });
 
 // login api 
-app.post('./login',async(req,res)=>{
-  try{
-      const {emailId, password} = req.body;
-      const user = User.findOne({emailId: emailId});
-      if(!user){
+app.post('/login', async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
 
-        throw new Error("Invalid Credentials");
-      }
-      const isPasswordValid = await bcrypt.compare(password,user.password);
-      if(isPasswordValid){
-        res.send("Login Succuessful");
-      }else{
-        throw new Error("Invalid Credentails");
-      }
-    } catch(err){
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("Invalid Credentials");
+    }
 
-    }res.send("ERROR : "+ err.message);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (isPasswordValid) {
+      //generate a JWT 
+      const token = await jwt.sign({_id:user._id},"s9F$kL2@qP8!Zx#M4rT0WnE7D");
+      res.cookie("token", token);
+      res.send("Login Succuessful");
+    } else {
+      throw new Error("Invalid Credentails");
+    }
+
+  } catch (err) {
+    res.send("ERROR : " + err.message);
+  }
 });
 
 
@@ -132,4 +140,20 @@ app.patch('/user/:userId',async(req,res)=>{
     res.send("Something went wrong"+err.message);
   }
 
-})
+});
+
+app.get('/profile',async(req,res)=>{
+  const cookies = req.cookies;
+
+  const {token} = cookies;
+
+  const decodedmsgobj = await jwt.verify(token,"s9F$kL2@qP8!Zx#M4rT0WnE7D");
+
+  const{_id} = decodedmsgobj;
+
+  console.log("Logged in user is "+ _id);
+
+  res.send("Validating Cookie...");
+
+});
+

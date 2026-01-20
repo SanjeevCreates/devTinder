@@ -14,6 +14,8 @@ const {validateSignUpData} = require('./utils/validation');
 
 const app = express();
 
+const userAuth = require('./middleware/auth');
+
 // express.json() is a middleware that which is used to convert the incomming json data via request to javaScript object because express cannot undestands JSON
 // and we are using it in app.use() without and specific routes hence it works for all the route handlers and middlewares 
 app.use(express.json());
@@ -143,17 +145,21 @@ app.patch('/user/:userId',async(req,res)=>{
 });
 
 app.get('/profile',async(req,res)=>{
-  const cookies = req.cookies;
+try{
+    const cookies = req.cookies;
 
   const {token} = cookies;
 
   const decodedmsgobj = await jwt.verify(token,"s9F$kL2@qP8!Zx#M4rT0WnE7D");
 
   const{_id} = decodedmsgobj;
-
-  console.log("Logged in user is "+ _id);
-
-  res.send("Validating Cookie...");
-
+  const user = await User.findById({_id:_id});
+  if(!user){
+    throw new Error("User does not exist");
+  }
+  res.send(user);
+} catch(err){
+  throw new Error("Error: "+ err.message);
+}
 });
 

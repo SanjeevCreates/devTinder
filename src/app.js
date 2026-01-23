@@ -14,7 +14,7 @@ const {validateSignUpData} = require('./utils/validation');
 
 const app = express();
 
-const userAuth = require('./middleware/auth');
+const {userAuth} = require('./middleware/auth');
 
 // express.json() is a middleware that which is used to convert the incomming json data via request to javaScript object because express cannot undestands JSON
 // and we are using it in app.use() without and specific routes hence it works for all the route handlers and middlewares 
@@ -24,6 +24,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // connecting the database first and then starting the server is the best practice 
+
 connectDB()
     .then(()=>{
     console.log("Database connected successfully...");
@@ -45,11 +46,12 @@ app.post('/login', async (req, res) => {
       throw new Error("Invalid Credentials");
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await user.validatePassword(password);
 
     if (isPasswordValid) {
       //generate a JWT 
-      const token = await jwt.sign({_id:user._id},"s9F$kL2@qP8!Zx#M4rT0WnE7D");
+      const token = await user.getJWT();
+      
       res.cookie("token", token);
       res.send("Login Succuessful");
     } else {
@@ -60,6 +62,7 @@ app.post('/login', async (req, res) => {
     res.send("ERROR : " + err.message);
   }
 });
+
 
 
 app.post('/signup',async(req,res)=>{
@@ -144,19 +147,9 @@ app.patch('/user/:userId',async(req,res)=>{
 
 });
 
-app.get('/profile',async(req,res)=>{
+app.get('/profile',userAuth,async(req,res)=>{
 try{
-    const cookies = req.cookies;
-
-  const {token} = cookies;
-
-  const decodedmsgobj = await jwt.verify(token,"s9F$kL2@qP8!Zx#M4rT0WnE7D");
-
-  const{_id} = decodedmsgobj;
-  const user = await User.findById({_id:_id});
-  if(!user){
-    throw new Error("User does not exist");
-  }
+  const user = req.user;
   res.send(user);
 } catch(err){
   throw new Error("Error: "+ err.message);
